@@ -14,7 +14,6 @@ from llm_oncotrackinator import Config, LesionExtractor, LesionTracker, MedicalR
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(True, reason="Requires Ollama - enable manually by removing skipif")
 class TestRealLLMQuality:
     """Test actual LLM extraction quality."""
 
@@ -119,7 +118,6 @@ class TestRealLLMQuality:
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(True, reason="Requires Ollama - enable manually")
 class TestRealEndToEnd:
     """Test complete end-to-end pipeline with real LLM."""
 
@@ -173,7 +171,6 @@ class TestRealEndToEnd:
 
 
 @pytest.mark.integration
-@pytest.mark.skipif(True, reason="Requires Ollama - enable manually")
 class TestLLMResponseQuality:
     """Test the quality and consistency of LLM responses."""
 

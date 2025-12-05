@@ -88,9 +88,9 @@ loader = DataLoader(config=config)
 reports = loader.load_csv("medical_reports.csv")
 timelines = loader.get_patient_timelines(reports)
 
-# 3. Track lesions across timepoints
+# 3. Track lesions across timepoints (with progress bars!)
 tracker = LesionTracker(config=config)
-histories = tracker.track_all_patients(timelines)
+histories = tracker.track_all_patients(timelines)  # Shows progress by default
 
 # 4. Generate outputs
 OutputGenerator.to_json(histories, file_path="results.json")

@@ -5,6 +5,8 @@ Lesion tracking across multiple timepoints.
 from typing import List, Dict, Optional
 from datetime import datetime
 
+from tqdm import tqdm
+
 from llm_oncotrackinator.config import Config
 from llm_oncotrackinator.data_loader import MedicalReport
 from llm_oncotrackinator.lesion_extractor import LesionExtractor
@@ -32,7 +34,8 @@ class LesionTracker:
     def track_patient(
         self,
         patient_id: str,
-        reports: List[MedicalReport]
+        reports: List[MedicalReport],
+        show_progress: bool = True
     ) -> PatientLesionHistory:
         """
         Track lesions for a single patient across all timepoints.
@@ -40,6 +43,7 @@ class LesionTracker:
         Args:
             patient_id: Patient identifier
             reports: List of medical reports, should be chronologically sorted
+            show_progress: Whether to show progress bar (default: True)
 
         Returns:
             PatientLesionHistory with all tracked lesions
@@ -55,50 +59,75 @@ class LesionTracker:
 
         history = PatientLesionHistory(patient_id=patient_id)
 
+        # Create progress bar
+        pbar = tqdm(
+            total=len(sorted_reports),
+            desc=f"Processing {patient_id}",
+            unit="timepoint",
+            disable=not show_progress
+        )
+
         # Process first timepoint
+        pbar.set_postfix_str(f"First timepoint ({sorted_reports[0].date.date()})")
         first_report = sorted_reports[0]
         first_timepoint = self._process_first_timepoint(first_report)
         history.timepoints.append(first_timepoint)
+        pbar.update(1)
 
         # Track lesions for ID assignment
         tracked_lesions = self._extract_lesion_summaries(first_timepoint.lesions)
 
         # Process subsequent timepoints
-        for report in sorted_reports[1:]:
+        for idx, report in enumerate(sorted_reports[1:], start=2):
+            pbar.set_postfix_str(f"Timepoint {idx}/{len(sorted_reports)} ({report.date.date()})")
             timepoint = self._process_followup_timepoint(report, tracked_lesions)
             history.timepoints.append(timepoint)
 
             # Update tracked lesions
             tracked_lesions = self._extract_lesion_summaries(timepoint.lesions)
+            pbar.update(1)
 
+        pbar.close()
         return history
 
     def track_all_patients(
         self,
-        patient_reports: Dict[str, List[MedicalReport]]
+        patient_reports: Dict[str, List[MedicalReport]],
+        show_progress: bool = True
     ) -> List[PatientLesionHistory]:
         """
         Track lesions for multiple patients.
 
         Args:
             patient_reports: Dictionary mapping patient_id to list of reports
+            show_progress: Whether to show progress bars (default: True)
 
         Returns:
             List of PatientLesionHistory objects
         """
         results = []
 
+        # Overall progress for all patients
+        if show_progress:
+            print(f"\nTracking {len(patient_reports)} patients...")
+
         for patient_id, reports in patient_reports.items():
             try:
-                history = self.track_patient(patient_id, reports)
+                history = self.track_patient(patient_id, reports, show_progress=show_progress)
                 results.append(history)
+                if show_progress:
+                    lesion_count = len(history.get_all_lesion_ids())
+                    print(f"[OK] {patient_id}: Found {lesion_count} unique lesion(s)")
             except Exception as e:
-                print(f"Warning: Failed to track patient {patient_id}: {str(e)}")
+                print(f"[FAILED] {patient_id}: {str(e)}")
                 # Still add patient with empty history
                 results.append(PatientLesionHistory(
                     patient_id=patient_id,
                     summary=f"Tracking failed: {str(e)}"
                 ))
+
+        if show_progress:
+            print(f"\nCompleted tracking for {len(results)} patients\n")
 
         return results
 
