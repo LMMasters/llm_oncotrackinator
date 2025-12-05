@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from llm_oncotrackinator.config import Config
 
@@ -15,29 +15,29 @@ from llm_oncotrackinator.config import Config
 class MedicalReport(BaseModel):
     """A single medical report entry."""
 
+    model_config = ConfigDict(
+        json_encoders={datetime: lambda v: v.isoformat()}
+    )
+
     patient_id: str = Field(..., description="Unique patient identifier")
     date: datetime = Field(..., description="Date of the report")
     report_text: str = Field(..., description="The medical report text content")
 
-    @validator("report_text")
+    @field_validator("report_text")
+    @classmethod
     def validate_report_not_empty(cls, v: str) -> str:
         """Ensure report text is not empty."""
         if not v or not v.strip():
             raise ValueError("Report text cannot be empty")
         return v.strip()
 
-    @validator("patient_id")
+    @field_validator("patient_id")
+    @classmethod
     def validate_patient_id(cls, v: str) -> str:
         """Ensure patient ID is not empty."""
         if not v or not v.strip():
             raise ValueError("Patient ID cannot be empty")
         return v.strip()
-
-    class Config:
-        """Pydantic config."""
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
 
 
 class DataLoader:

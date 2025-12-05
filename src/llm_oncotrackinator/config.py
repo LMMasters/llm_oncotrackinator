@@ -2,12 +2,13 @@
 Configuration management for LLM OncoTrackinator.
 """
 
-from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class Config(BaseModel):
     """Configuration for the LLM OncoTrackinator."""
+
+    model_config = ConfigDict(validate_assignment=True)
 
     ollama_model: str = Field(
         default="llama3.1:8b",
@@ -46,7 +47,3 @@ class Config(BaseModel):
         ge=1,
         description="Maximum number of retries for LLM API calls"
     )
-
-    class Config:
-        """Pydantic config."""
-        validate_assignment = True
