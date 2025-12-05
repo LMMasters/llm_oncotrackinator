@@ -1,0 +1,8 @@
+patient_id,date,report
+P001,2024-01-15,"CT scan of chest shows a 2.3 cm nodule in the right upper lobe. Small pleural effusion noted on the left side."
+P001,2024-03-20,"Follow-up CT shows the right upper lobe nodule has increased to 2.8 cm. Left pleural effusion has resolved."
+P001,2024-06-10,"CT demonstrates further growth of right upper lobe lesion to 3.2 cm. New 1.5 cm nodule identified in left lower lobe."
+P002,2024-02-01,"MRI brain reveals a 1.2 cm enhancing lesion in the left frontal lobe."
+P002,2024-04-15,"Follow-up MRI shows stable 1.2 cm left frontal lobe lesion. No new lesions identified."
+P003,2024-01-10,"Abdominal CT demonstrates a 4.5 cm mass in the liver segment 7. Multiple smaller lesions (0.5-1.0 cm) scattered throughout both lobes."
+P003,2024-02-28,"Post-treatment CT shows liver segment 7 mass decreased to 3.1 cm. Smaller lesions appear stable."
