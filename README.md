@@ -54,56 +54,112 @@ ollama pull llama3.1:8b
 ### Prepare your data
 
 Your dataset should be a CSV or Excel file with at least three columns:
+
 - **patient_id**: Unique patient identifier
 - **date**: Date of the report (any format pandas can parse)
 - **report**: The medical report text
 
 Example CSV:
+
 ```csv
 patient_id,date,report
 P001,2024-01-15,"CT scan shows a 2.3 cm nodule in the right upper lobe."
 P001,2024-03-20,"Follow-up CT shows the nodule has increased to 2.8 cm."
 ```
 
-### Load and process data
+### Complete Pipeline Example
 
 ```python
-from llm_oncotrackinator import DataLoader, Config
-
-# Configure the loader
-config = Config(
-    patient_id_column="patient_id",
-    date_column="date",
-    report_column="report",
-    ollama_model="llama3.1:8b"
+from llm_oncotrackinator import (
+    Config,
+    DataLoader,
+    LesionTracker,
+    OutputGenerator
 )
 
-# Load data
+# 1. Configure
+config = Config(
+    ollama_model="llama3.1:8b",
+    temperature=0.0  # Deterministic output
+)
+
+# 2. Load medical reports
 loader = DataLoader(config=config)
 reports = loader.load_csv("medical_reports.csv")
-
-# Organize into patient timelines
 timelines = loader.get_patient_timelines(reports)
 
-print(f"Loaded {len(reports)} reports for {len(timelines)} patients")
+# 3. Track lesions across timepoints
+tracker = LesionTracker(config=config)
+histories = tracker.track_all_patients(timelines)
+
+# 4. Generate outputs
+OutputGenerator.to_json(histories, file_path="results.json")
+OutputGenerator.save_summary(histories, file_path="summary.txt")
+
+# 5. Access results programmatically
+for history in histories:
+    print(f"Patient {history.patient_id}")
+    print(f"  Lesions tracked: {history.get_all_lesion_ids()}")
+
+    # Get timeline for specific lesion
+    for lesion_id in history.get_all_lesion_ids():
+        timeline = history.get_lesion_timeline(lesion_id)
+        for observation in timeline:
+            print(f"  {lesion_id} at {observation.timepoint_date.date()}: {observation.size_cm} cm")
+```
+
+### Simple Single Patient Example
+
+```python
+from datetime import datetime
+from llm_oncotrackinator import MedicalReport, LesionTracker, Config
+
+# Create reports
+reports = [
+    MedicalReport(
+        patient_id="P001",
+        date=datetime(2024, 1, 15),
+        report_text="CT scan shows a 2.3 cm nodule in the right upper lobe."
+    ),
+    MedicalReport(
+        patient_id="P001",
+        date=datetime(2024, 3, 20),
+        report_text="Follow-up CT shows the nodule has increased to 2.8 cm."
+    )
+]
+
+# Track lesions
+tracker = LesionTracker(config=Config())
+history = tracker.track_patient("P001", reports)
+
+# View results
+print(f"Tracked {len(history.get_all_lesion_ids())} lesions across {len(history.timepoints)} timepoints")
 ```
 
 ## Project Structure
 
-```
+```plaintext
 llm-oncotrackinator/
 ├── src/
 │   └── llm_oncotrackinator/
-│       ├── __init__.py          # Package exports
+│       ├── __init__.py           # Package exports
 │       ├── config.py             # Configuration management
 │       ├── data_loader.py        # Data loading and validation
-│       ├── lesion_extractor.py   # LLM-based lesion extraction (coming soon)
-│       └── tracker.py            # Lesion tracking logic (coming soon)
+│       ├── models.py             # Pydantic data models
+│       ├── lesion_extractor.py   # LLM-based lesion extraction
+│       ├── tracker.py            # Lesion tracking across timepoints
+│       └── output.py             # JSON and summary generation
 ├── examples/
 │   ├── sample_data.csv           # Example dataset
-│   └── basic_usage.py            # Usage examples
-├── tests/                        # Unit tests (coming soon)
+│   ├── basic_usage.py            # Basic data loading example
+│   ├── single_patient_tracking.py # Single patient example
+│   └── full_pipeline.py          # Complete pipeline example
+├── tests/
+│   └── test_data_loader.py       # Unit tests
+├── outputs/                      # Generated results (gitignored)
 ├── pyproject.toml                # Package configuration
+├── requirements.txt              # Pip dependencies
+├── environment.yml               # Conda environment
 ├── README.md                     # This file
 └── LICENSE                       # MIT License
 ```
@@ -127,30 +183,37 @@ Config(
 ## Data Requirements
 
 ### Required Columns
+
 - Patient identifier (default: `patient_id`)
 - Report date (default: `date`)
 - Report text (default: `report`)
 
 ### Data Quality
+
 - Patient IDs and report text cannot be empty
 - Dates must be parseable by pandas
 - Rows with missing required data are automatically dropped with a warning
 
 ### Supported Formats
+
 - CSV files (`.csv`)
 - Excel files (`.xlsx`, `.xls`)
 - Pandas DataFrames
 
-## Roadmap
+## Features
 
 - [x] Data loading and validation
 - [x] Configuration management
-- [ ] LLM-based lesion extraction
-- [ ] Temporal lesion tracking
-- [ ] JSON output generation
-- [ ] Comprehensive tests
+- [x] LLM-based lesion extraction
+- [x] Temporal lesion tracking across timepoints
+- [x] JSON output generation
+- [x] Human-readable summary reports
+- [x] Patient timeline organization
+- [x] Pydantic v2 data validation
+- [ ] Comprehensive unit tests
 - [ ] Advanced prompting strategies
 - [ ] Support for custom extraction schemas
+- [ ] Batch processing optimization
 
 ## Contributing
 
